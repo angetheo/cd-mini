@@ -1,229 +1,84 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calorie Deficit Mini Game</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#111" />
-  <style>
-    :root { --bg:#0f0f12; --panel:#17171c; --text:#eaeaf0; --muted:#9aa0aa; --accent:#63e; --good:#3bd16f; --bad:#ff6b6b; }
-    * { box-sizing: border-box; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
-    body { margin:0; background:var(--bg); color:var(--text); display:flex; justify-content:center; }
-    main { width:100%; max-width:560px; padding:20px; }
-    .card { background:var(--panel); border:1px solid #24242a; border-radius:12px; padding:16px; margin-bottom:16px; }
-    h1 { margin: 6px 0 12px; font-size: 22px; }
-    label { display:block; font-size:14px; color:var(--muted); margin-bottom:6px; }
-    input[type="number"] { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #2a2a32; background:#101015; color:var(--text); }
-    button { padding:10px 14px; border:0; border-radius:10px; background:var(--accent); color:white; font-weight:600; cursor:pointer; }
-    button.secondary { background:#2a2a32; color:var(--text); }
-    .row { display:flex; gap:10px; }
-    .row > * { flex:1; }
-    .hp-wrap { background:#1c1c22; border:1px solid #2a2a32; padding:12px; border-radius:12px; }
-    .bar { height:14px; background:#2a2a32; border-radius:7px; overflow:hidden; }
-    .bar > div { height:100%; width:0; background:linear-gradient(90deg, #7d5cff, #5f79ff); transition: width 350ms ease; }
-    .hp-label { display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-top:8px; }
-    .delta { font-weight:700; }
-    .delta.good { color:var(--good); }
-    .delta.bad { color:var(--bad); }
-    .log-item { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px dashed #24242a; font-size:14px; }
-    .log-item:last-child { border-bottom:0; }
-    small { color:var(--muted); }
-    .inline { display:inline-flex; align-items:center; gap:8px; }
-  </style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Deficit Slayer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'game-bg': '#0f172a',
+              'game-surface': '#1e293b',
+              'game-accent': '#3b82f6',
+              'health-good': '#22c55e',
+              'health-bad': '#ef4444',
+              'gold': '#fbbf24',
+            },
+            animation: {
+              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+              'float': 'float 2s ease-in-out infinite',
+              'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              shake: {
+                '10%, 90%': { transform: 'translate3d(-2px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(4px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-8px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(8px, 0, 0)' }
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              pop: {
+                '0%': { transform: 'scale(0.5)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #0f172a;
+        color: white;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Custom scrollbar for history */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 3px;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "react/": "https://esm.sh/react@18.3.1/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body>
-  <main>
-    <section class="card">
-      <h1>Calorie Deficit Mini Game</h1>
-      <small>Defeat the boss by creating a calorie deficit. Install as a PWA to use on your phone.</small>
-    </section>
-
-    <section id="boss" class="card">
-      <div class="hp-wrap">
-        <div class="bar"><div id="hpFill"></div></div>
-        <div class="hp-label">
-          <div id="hpText">Boss HP: –</div>
-          <div id="hpPct">–%</div>
-        </div>
-      </div>
-      <div style="margin-top:10px;">
-        <small id="goalText"></small>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2 style="margin:0 0 10px;">Daily Log</h2>
-      <div class="row">
-        <div>
-          <label>Baseline</label>
-          <input id="baseline" type="number" inputmode="numeric" min="1000" max="5000" step="10" />
-        </div>
-        <div>
-          <label>Calories eaten today</label>
-          <input id="eaten" type="number" inputmode="numeric" min="0" max="10000" step="10" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <button id="save">Apply to Boss</button>
-        <button id="clear" class="secondary">Reset Game</button>
-      </div>
-      <div id="deltaWrap" style="margin-top:12px; display:none;">
-        <span id="deltaText" class="delta"></span>
-        <small id="deltaNote" style="margin-left:8px; color:var(--muted);"></small>
-      </div>
-      <small id="todayNote"></small>
-    </section>
-
-    <section class="card">
-      <h2 style="margin:0 0 10px;">Recent Days</h2>
-      <div id="log"></div>
-    </section>
-  </main>
-
-  <script>
-    // --- Simple state/persistence ---
-    const START_HP = 70000;
-    const HEAL_FORGIVENESS = 0.5; // surplus heals boss at half rate
-    const ls = {
-      get(){ try { return JSON.parse(localStorage.getItem('cdmg-state')) || null } catch { return null } },
-      set(state){ localStorage.setItem('cdmg-state', JSON.stringify(state)) }
-    };
-    const today = new Date();
-    const toKey = d => d.toISOString().slice(0,10);
-
-    function initState(){
-      const s = ls.get();
-      if (s) return s;
-      const state = {
-        bossHP: START_HP,
-        baseline: 2200,
-        logs: [] // {date, eaten, net, dmg, heal}
-      };
-      ls.set(state);
-      return state;
-    }
-
-    let state = initState();
-
-    // --- Elements ---
-    const hpFill = document.getElementById('hpFill');
-    const hpText = document.getElementById('hpText');
-    const hpPct  = document.getElementById('hpPct');
-    const goalText = document.getElementById('goalText');
-    const baselineEl = document.getElementById('baseline');
-    const eatenEl = document.getElementById('eaten');
-    const saveBtn = document.getElementById('save');
-    const clearBtn = document.getElementById('clear');
-    const logEl = document.getElementById('log');
-    const deltaWrap = document.getElementById('deltaWrap');
-    const deltaText = document.getElementById('deltaText');
-    const deltaNote = document.getElementById('deltaNote');
-    const todayNote = document.getElementById('todayNote');
-
-    // --- UI update ---
-    function fmt(n){ return Math.round(n).toLocaleString() }
-    function clamp(min, v, max){ return Math.max(min, Math.min(v, max)) }
-
-    function render(){
-      const hp = clamp(0, state.bossHP, START_HP);
-      const pct = (hp / START_HP) * 100;
-      hpFill.style.width = pct + '%';
-      hpText.textContent = `Boss HP: ${fmt(hp)} / ${fmt(START_HP)}`;
-      hpPct.textContent = `${pct.toFixed(1)}%`;
-      goalText.textContent = `${fmt(START_HP - hp)} kcal defeated so far`;
-
-      baselineEl.value = state.baseline;
-
-      // did we log today?
-      const k = toKey(today);
-      const logged = state.logs.find(l => l.date === k);
-      if (logged) {
-        eatenEl.value = logged.eaten;
-        todayNote.textContent = `Logged for ${k}. You can edit and re-apply.`;
-      } else {
-        eatenEl.value = '';
-        todayNote.textContent = `No entry yet for ${k}.`;
-      }
-
-      // recent 14 days
-      const items = [...state.logs].sort((a,b)=> b.date.localeCompare(a.date)).slice(0,14);
-      logEl.innerHTML = items.map(l=>{
-        const sign = l.net >= 0 ? '+' : '−';
-        const val = Math.abs(l.net);
-        const color = l.net >= 0 ? 'good' : 'bad';
-        const effect = l.net >= 0 ? `Damage ${fmt(l.dmg)}` : `Heal ${fmt(l.heal)}`;
-        return `<div class="log-item">
-          <div><strong>${l.date}</strong> — ate ${fmt(l.eaten)} kcal
-            <small class="inline">| baseline ${fmt(state.baseline)} | <span class="${color}">${sign}${fmt(val)}</span> kcal</small>
-          </div>
-          <div><small>${effect}</small></div>
-        </div>`;
-      }).join('');
-    }
-
-    // --- Actions ---
-    saveBtn.addEventListener('click', ()=>{
-      const baseline = parseInt(baselineEl.value || state.baseline, 10);
-      const eaten = parseInt(eatenEl.value || '0', 10);
-      if (!baseline || baseline < 800) return alert('Please set a reasonable baseline (e.g., 2000–2600).');
-      if (eaten < 0) return alert('Calories cannot be negative.');
-
-      state.baseline = baseline;
-
-      const date = toKey(today);
-      const net = baseline - eaten;
-      const dmg = Math.max(0, net);
-      const heal = Math.max(0, -net) * HEAL_FORGIVENESS;
-
-      // apply to boss
-      const oldHP = state.bossHP;
-      state.bossHP = clamp(0, oldHP - dmg + heal, START_HP);
-
-      // upsert log for today
-      const idx = state.logs.findIndex(l => l.date === date);
-      const entry = { date, eaten, net, dmg, heal };
-      if (idx >= 0) state.logs[idx] = entry; else state.logs.push(entry);
-
-      ls.set(state);
-      render();
-
-      // delta feedback
-      deltaWrap.style.display = 'inline-block';
-      if (dmg > 0) {
-        deltaText.textContent = `−${fmt(dmg)} HP`;
-        deltaText.className = 'delta good';
-        deltaNote.textContent = 'Great! Your deficit damaged the boss.';
-      } else if (heal > 0) {
-        deltaText.textContent = `+${fmt(heal)} HP`;
-        deltaText.className = 'delta bad';
-        deltaNote.textContent = 'Surplus day — partial heal applied (50%).';
-      } else {
-        deltaText.textContent = '0';
-        deltaText.className = 'delta';
-        deltaNote.textContent = 'No change today.';
-      }
-
-      // victory pop
-      if (state.bossHP === 0) {
-        setTimeout(()=> alert('YOU WIN! Boss defeated. Consider a new run or a prestige mode.'), 10);
-      }
-    });
-
-    clearBtn.addEventListener('click', ()=>{
-      if (!confirm('Reset boss, baseline, and logs?')) return;
-      state = { bossHP: START_HP, baseline: 2200, logs: [] };
-      ls.set(state);
-      deltaWrap.style.display = 'none';
-      render();
-    });
-
-    // PWA install prompt is automatic with manifest + service worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js'));
-    }
-
-    render();
-  </script>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>
